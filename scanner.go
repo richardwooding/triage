@@ -41,7 +41,8 @@ func WithMinEntropy(threshold float64) Option {
 // WithRules replaces the scanner's rule set entirely. Pass [DefaultRules] as a
 // base if you want to extend rather than replace the built-ins.
 func WithRules(rules ...Rule) Option {
-	return func(s *Scanner) { s.rules = rules }
+	// Copy so a later WithExtraRules append cannot mutate the caller's slice.
+	return func(s *Scanner) { s.rules = append([]Rule(nil), rules...) }
 }
 
 // WithExtraRules appends custom rules to the scanner's current rule set.

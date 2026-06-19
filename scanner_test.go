@@ -87,6 +87,15 @@ func TestScannerRedactMask(t *testing.T) {
 	}
 }
 
+func TestScannerNilPatternIsSkipped(t *testing.T) {
+	// A custom rule with a nil Pattern must be skipped, not panic.
+	s := NewScanner(WithExtraRules(Rule{Name: "Broken", Severity: SeverityLow}))
+	f := s.DetectSecrets([]byte("AKIAIOSFODNN7EXAMPLE"))
+	if len(f) != 1 || f[0].Rule != "AWS Access Key" {
+		t.Errorf("nil-pattern rule disrupted scanning: %+v", f)
+	}
+}
+
 func TestDefaultRulesIsACopy(t *testing.T) {
 	a := DefaultRules()
 	n := len(a)

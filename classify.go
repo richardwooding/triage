@@ -157,6 +157,9 @@ func detectSecretsWith(str []byte, rules []Rule, allow map[string]struct{}) []Se
 
 	var findings []SecretFinding
 	for _, rule := range rules {
+		if rule.Pattern == nil {
+			continue
+		}
 		for _, loc := range rule.Pattern.FindAllIndex(str, -1) {
 			match := str[loc[0]:loc[1]]
 			if rule.MinEntropy > 0 && Entropy(match) < rule.MinEntropy {
