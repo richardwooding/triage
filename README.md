@@ -86,7 +86,9 @@ exactly once, and the fixed mask avoids leaking the original secret's length.
 **Secret rules** (precompiled, with optional entropy gating):
 
 AWS access keys, PEM private keys, GitHub tokens, Slack tokens, Stripe keys, Google API keys,
-JSON Web Tokens, and generic `key=value` secret assignments.
+GitLab personal access tokens, npm access tokens, Anthropic & OpenAI API keys, SendGrid API
+keys, Telegram bot tokens, Twilio API keys, Square access tokens, JSON Web Tokens, and generic
+`key=value` secret assignments.
 
 **High-entropy blobs**: long opaque tokens above the entropy threshold that don't classify as
 benign structural content (so file paths and cipher lists don't get flagged, but base64/hex

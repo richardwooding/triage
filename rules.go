@@ -74,6 +74,50 @@ var secretRules = []secretRule{
 		re:       regexp.MustCompile(`\b[sprk]k_(?:test|live)_[A-Za-z0-9]{16,}\b`),
 	},
 	{
+		name:     "GitLab Personal Access Token",
+		severity: SeverityHigh,
+		re:       regexp.MustCompile(`\bglpat-[A-Za-z0-9_\-]{20,}\b`),
+	},
+	{
+		name:     "npm Access Token",
+		severity: SeverityHigh,
+		re:       regexp.MustCompile(`\bnpm_[A-Za-z0-9]{36}\b`),
+	},
+	{
+		name:     "Anthropic API Key",
+		severity: SeverityHigh,
+		re:       regexp.MustCompile(`\bsk-ant-[A-Za-z0-9_\-]{32,}\b`),
+	},
+	{
+		name:     "OpenAI API Key",
+		severity: SeverityHigh,
+		// Newer project/service-account keys (sk-proj-/sk-svcacct-, which may
+		// contain - and _) and the classic sk- + alphanumerics format. The
+		// classic alternative requires alphanumerics only, so it cannot match
+		// an Anthropic sk-ant- key (the hyphen after "ant" breaks the run).
+		re: regexp.MustCompile(`\bsk-(?:proj|svcacct)-[A-Za-z0-9_\-]{20,}\b|\bsk-[A-Za-z0-9]{20,}\b`),
+	},
+	{
+		name:     "SendGrid API Key",
+		severity: SeverityHigh,
+		re:       regexp.MustCompile(`\bSG\.[A-Za-z0-9_\-]{22}\.[A-Za-z0-9_\-]{43}\b`),
+	},
+	{
+		name:     "Telegram Bot Token",
+		severity: SeverityHigh,
+		re:       regexp.MustCompile(`\b\d{8,10}:[A-Za-z0-9_\-]{35}\b`),
+	},
+	{
+		name:     "Twilio API Key",
+		severity: SeverityHigh,
+		re:       regexp.MustCompile(`\bSK[0-9a-f]{32}\b`),
+	},
+	{
+		name:     "Square Access Token",
+		severity: SeverityHigh,
+		re:       regexp.MustCompile(`\bEAAA[A-Za-z0-9_\-]{60,}\b|\bsq0[a-z]{3}-[A-Za-z0-9_\-]{22,}\b`),
+	},
+	{
 		name:     "JSON Web Token",
 		severity: SeverityMedium,
 		re:       regexp.MustCompile(`\beyJ[A-Za-z0-9_\-]+\.eyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+`),

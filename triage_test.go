@@ -87,6 +87,16 @@ func TestDetectSecrets(t *testing.T) {
 		{"github", "ghp_" + repeat("a", 36), "GitHub Token"},
 		{"slack", "xoxb-123456789012-abcdefghijkl", "Slack Token"},
 		{"stripe", "sk_live_" + repeat("A", 20), "Stripe Key"},
+		{"gitlab", "glpat-" + repeat("a", 20), "GitLab Personal Access Token"},
+		{"npm", "npm_" + repeat("A", 36), "npm Access Token"},
+		{"anthropic", "sk-ant-api03-" + repeat("a", 32), "Anthropic API Key"},
+		{"openai-classic", "sk-" + repeat("A", 48), "OpenAI API Key"},
+		{"openai-proj", "sk-proj-" + repeat("a", 20), "OpenAI API Key"},
+		{"sendgrid", "SG." + repeat("a", 22) + "." + repeat("b", 43), "SendGrid API Key"},
+		{"telegram", "123456789:" + repeat("a", 35), "Telegram Bot Token"},
+		{"twilio", "SK" + repeat("a", 32), "Twilio API Key"},
+		{"square-eaaa", "EAAA" + repeat("a", 60), "Square Access Token"},
+		{"square-sq0", "sq0atp-" + repeat("a", 22), "Square Access Token"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -146,6 +156,22 @@ func TestDetectSecretsNoFalsePositives(t *testing.T) {
 		if findings := detectSecrets([]byte(in)); len(findings) != 0 {
 			t.Errorf("detectSecrets(%q) = %+v, want none", in, findings)
 		}
+	}
+}
+
+func TestAnthropicNotMatchedAsOpenAI(t *testing.T) {
+	// An Anthropic key must be reported once, by the Anthropic rule only — the
+	// OpenAI sk- pattern must not also fire on it.
+	in := []byte("sk-ant-api03-" + repeat("a", 40))
+	rules := map[string]int{}
+	for _, f := range detectSecrets(in) {
+		rules[f.Rule]++
+	}
+	if rules["OpenAI API Key"] != 0 {
+		t.Errorf("Anthropic key matched OpenAI rule: %+v", rules)
+	}
+	if rules["Anthropic API Key"] != 1 {
+		t.Errorf("Anthropic key matched Anthropic rule %d times, want 1", rules["Anthropic API Key"])
 	}
 }
 
