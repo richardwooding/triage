@@ -92,10 +92,11 @@ var secretRules = []secretRule{
 		name:     "OpenAI API Key",
 		severity: SeverityHigh,
 		// Newer project/service-account keys (sk-proj-/sk-svcacct-, which may
-		// contain - and _) and the classic sk- + alphanumerics format. The
+		// contain - and _) and the classic sk- + 48-alphanumeric format. The
 		// classic alternative requires alphanumerics only, so it cannot match
-		// an Anthropic sk-ant- key (the hyphen after "ant" breaks the run).
-		re: regexp.MustCompile(`\bsk-(?:proj|svcacct)-[A-Za-z0-9_\-]{20,}\b|\bsk-[A-Za-z0-9]{20,}\b`),
+		// an Anthropic sk-ant- key (the hyphen after "ant" breaks the run);
+		// fixing its length at 48 keeps false positives low.
+		re: regexp.MustCompile(`\bsk-(?:proj|svcacct)-[A-Za-z0-9_\-]{20,}\b|\bsk-[A-Za-z0-9]{48}\b`),
 	},
 	{
 		name:     "SendGrid API Key",
@@ -105,12 +106,16 @@ var secretRules = []secretRule{
 	{
 		name:     "Telegram Bot Token",
 		severity: SeverityHigh,
-		re:       regexp.MustCompile(`\b\d{8,10}:[A-Za-z0-9_\-]{35}\b`),
+		// IDs are 64-bit integers and grow past 10 digits over time; allow up
+		// to 20 so newer tokens are not missed.
+		re: regexp.MustCompile(`\b\d{8,20}:[A-Za-z0-9_\-]{35}\b`),
 	},
 	{
 		name:     "Twilio API Key",
 		severity: SeverityHigh,
-		re:       regexp.MustCompile(`\bSK[0-9a-f]{32}\b`),
+		// 32 hex chars; usually lowercase but allow uppercase too (configs,
+		// env vars, logs sometimes upper-case them).
+		re: regexp.MustCompile(`\bSK[0-9a-fA-F]{32}\b`),
 	},
 	{
 		name:     "Square Access Token",
