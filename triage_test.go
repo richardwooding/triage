@@ -94,7 +94,9 @@ func TestDetectSecrets(t *testing.T) {
 		{"openai-proj", "sk-proj-" + repeat("a", 20), "OpenAI API Key"},
 		{"sendgrid", "SG." + repeat("a", 22) + "." + repeat("b", 43), "SendGrid API Key"},
 		{"telegram", "123456789:" + repeat("a", 35), "Telegram Bot Token"},
+		{"telegram-64bit", "12345678901234:" + repeat("a", 35), "Telegram Bot Token"},
 		{"twilio", "SK" + repeat("a", 32), "Twilio API Key"},
+		{"twilio-upper", "SK" + repeat("A", 32), "Twilio API Key"},
 		{"square-eaaa", "EAAA" + repeat("a", 60), "Square Access Token"},
 		{"square-sq0", "sq0atp-" + repeat("a", 22), "Square Access Token"},
 	}
@@ -152,7 +154,12 @@ func TestDetectSecretsMultipleMatches(t *testing.T) {
 }
 
 func TestDetectSecretsNoFalsePositives(t *testing.T) {
-	for _, in := range []string{"hello world", "the quick brown fox", "AKIA-too-short"} {
+	for _, in := range []string{
+		"hello world", "the quick brown fox", "AKIA-too-short",
+		// Classic OpenAI keys are exactly 48 chars after sk-; a shorter sk-
+		// token must not match (the {48} anchor guards against loose matches).
+		"sk-" + repeat("a", 30),
+	} {
 		if findings := detectSecrets([]byte(in)); len(findings) != 0 {
 			t.Errorf("detectSecrets(%q) = %+v, want none", in, findings)
 		}
