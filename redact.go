@@ -21,7 +21,12 @@ func Redact(str []byte) []byte {
 // RedactWith behaves like [Redact] but replaces each detected secret with the
 // supplied mask instead of [DefaultRedactMask].
 func RedactWith(str, mask []byte) []byte {
-	findings := detectSecrets(str)
+	return redactSpans(str, detectSecrets(str), mask)
+}
+
+// redactSpans rewrites str, replacing the span of each finding with mask. It is
+// the shared implementation behind [Redact], [RedactWith], and [Scanner.Redact].
+func redactSpans(str []byte, findings []SecretFinding, mask []byte) []byte {
 	if len(findings) == 0 {
 		// Always return a distinct slice so callers may mutate the result
 		// without affecting the input.
