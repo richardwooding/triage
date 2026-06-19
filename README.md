@@ -46,11 +46,28 @@ func main() {
 `Classify` takes the bytes to analyze and a `minEntropy` threshold (bits/byte) above which an
 opaque token is flagged as high-entropy. Pass `0` to disable high-entropy flagging.
 
+Each `SecretFinding` carries the byte offsets of the match (`Start`/`End`, where
+`str[Start:End] == Match`), so you can highlight or redact the exact span.
+
 The raw entropy function is exported too:
 
 ```go
 triage.Entropy([]byte("hello"))   // 1.92
 ```
+
+## Redaction
+
+Use `Redact` to scrub secrets out of text (logs, crash dumps, anything you're
+about to store or forward) before it leaves your process:
+
+```go
+clean := triage.Redact([]byte(`db: "AKIAIOSFODNN7EXAMPLE"`))
+// db: "[REDACTED]"
+```
+
+`Redact` never modifies its input and returns a new slice. `RedactWith` lets you
+supply a custom mask. Overlapping matches are merged so each region is masked
+exactly once, and the fixed mask avoids leaking the original secret's length.
 
 ## What it detects
 
