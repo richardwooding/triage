@@ -17,6 +17,11 @@ type SecretFinding struct {
 	Rule     string   `json:"rule"`
 	Severity Severity `json:"severity"`
 	Match    string   `json:"match"`
+	// Start and End are the byte offsets of the match within the scanned
+	// string: str[Start:End] == Match. End is exclusive. They make it possible
+	// to highlight or redact the exact span (see [Redact]).
+	Start int `json:"start"`
+	End   int `json:"end"`
 }
 
 // secretRule is a precompiled detector for one class of secret.

@@ -107,6 +107,40 @@ func TestDetectSecrets(t *testing.T) {
 	}
 }
 
+func TestDetectSecretsOffsets(t *testing.T) {
+	// The reported offsets must delimit the match exactly.
+	in := []byte("prefix AKIAIOSFODNN7EXAMPLE suffix")
+	findings := detectSecrets(in)
+	if len(findings) != 1 {
+		t.Fatalf("detectSecrets = %d findings, want 1", len(findings))
+	}
+	f := findings[0]
+	if got := string(in[f.Start:f.End]); got != f.Match {
+		t.Errorf("in[%d:%d] = %q, want Match %q", f.Start, f.End, got, f.Match)
+	}
+	if f.Start != 7 {
+		t.Errorf("Start = %d, want 7", f.Start)
+	}
+}
+
+func TestDetectSecretsMultipleMatches(t *testing.T) {
+	// Two distinct secrets of the same rule must both be reported.
+	in := []byte("AKIAIOSFODNN7EXAMPLE and AKIA1234567890ABCDEF")
+	findings := detectSecrets(in)
+	var aws int
+	for _, f := range findings {
+		if f.Rule == "AWS Access Key" {
+			aws++
+			if string(in[f.Start:f.End]) != f.Match {
+				t.Errorf("offset mismatch for %q", f.Match)
+			}
+		}
+	}
+	if aws != 2 {
+		t.Errorf("found %d AWS keys, want 2", aws)
+	}
+}
+
 func TestDetectSecretsNoFalsePositives(t *testing.T) {
 	for _, in := range []string{"hello world", "the quick brown fox", "AKIA-too-short"} {
 		if findings := detectSecrets([]byte(in)); len(findings) != 0 {

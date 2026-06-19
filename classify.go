@@ -130,8 +130,9 @@ func classifyCategory(b []byte) (Category, bool) {
 // regex scan. Short strings dominate real binaries, so this is a meaningful win.
 const minSecretLen = 12
 
-// detectSecrets runs every secret rule against the string, applying entropy
-// gating where configured.
+// detectSecrets runs every secret rule against the string, reporting every
+// non-overlapping match (not just the first) and applying entropy gating where
+// configured. Findings are ordered by rule, then by position within the string.
 func detectSecrets(str []byte) []SecretFinding {
 	if len(str) < minSecretLen {
 		return nil
@@ -139,19 +140,19 @@ func detectSecrets(str []byte) []SecretFinding {
 
 	var findings []SecretFinding
 	for _, rule := range secretRules {
-		loc := rule.re.FindIndex(str)
-		if loc == nil {
-			continue
+		for _, loc := range rule.re.FindAllIndex(str, -1) {
+			match := str[loc[0]:loc[1]]
+			if rule.minEntropy > 0 && Entropy(match) < rule.minEntropy {
+				continue
+			}
+			findings = append(findings, SecretFinding{
+				Rule:     rule.name,
+				Severity: rule.severity,
+				Match:    string(match),
+				Start:    loc[0],
+				End:      loc[1],
+			})
 		}
-		match := str[loc[0]:loc[1]]
-		if rule.minEntropy > 0 && Entropy(match) < rule.minEntropy {
-			continue
-		}
-		findings = append(findings, SecretFinding{
-			Rule:     rule.name,
-			Severity: rule.severity,
-			Match:    string(match),
-		})
 	}
 	return findings
 }
