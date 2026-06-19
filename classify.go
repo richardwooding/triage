@@ -30,9 +30,9 @@ type Result struct {
 	// HighEntropy is true when Entropy meets the configured threshold and the
 	// string looks like an opaque token rather than natural-language text.
 	HighEntropy bool
-	// Categories holds the content classification (at most one, first match
-	// wins by priority); empty when nothing matched.
-	Categories []Category
+	// Category is the content classification (first match wins by priority);
+	// the empty string when nothing matched.
+	Category Category
 	// Secrets holds any detected secrets/credentials.
 	Secrets []SecretFinding
 }
@@ -60,19 +60,29 @@ var (
 )
 
 // Classify analyzes a string and returns its entropy, content category, and any
-// detected secrets. minEntropy is the threshold (bits/byte) above which an
-// opaque token is flagged as high-entropy; pass 0 to disable that flag.
+// detected secrets, using the built-in secret rules. minEntropy is the
+// threshold (bits/byte) above which an opaque token is flagged as high-entropy;
+// pass 0 to disable that flag.
+//
+// For custom rules, an allowlist, or a fixed entropy threshold, build a
+// [Scanner] with [NewScanner] and call [Scanner.Classify].
 func Classify(str []byte, minEntropy float64) Result {
+	return classify(str, defaultRules, minEntropy, nil)
+}
+
+// classify is the shared implementation behind [Classify] and
+// [Scanner.Classify].
+func classify(str []byte, rules []Rule, minEntropy float64, allow map[string]struct{}) Result {
 	trimmed := bytes.TrimSpace(str)
 
 	r := Result{Entropy: Entropy(trimmed)}
 
 	cat, hasCat := classifyCategory(trimmed)
 	if hasCat {
-		r.Categories = append(r.Categories, cat)
+		r.Category = cat
 	}
 
-	r.Secrets = detectSecrets(str)
+	r.Secrets = detectSecretsWith(str, rules, allow)
 
 	// High-entropy flags opaque blobs. Suppress it for recognized structural
 	// content (URLs, paths, domains, IPs, ...) which is rarely secret material;
@@ -130,24 +140,36 @@ func classifyCategory(b []byte) (Category, bool) {
 // regex scan. Short strings dominate real binaries, so this is a meaningful win.
 const minSecretLen = 12
 
-// detectSecrets runs every secret rule against the string, reporting every
-// non-overlapping match (not just the first) and applying entropy gating where
-// configured. Findings are ordered by rule, then by position within the string.
+// detectSecrets runs the built-in secret rules against the string. It is a
+// convenience wrapper over [detectSecretsWith] with no allowlist.
 func detectSecrets(str []byte) []SecretFinding {
+	return detectSecretsWith(str, defaultRules, nil)
+}
+
+// detectSecretsWith runs the given secret rules against the string, reporting
+// every non-overlapping match (not just the first) and applying entropy gating
+// where configured. Matches present in allow (an exact-match set, may be nil)
+// are suppressed. Findings are ordered by rule, then by position.
+func detectSecretsWith(str []byte, rules []Rule, allow map[string]struct{}) []SecretFinding {
 	if len(str) < minSecretLen {
 		return nil
 	}
 
 	var findings []SecretFinding
-	for _, rule := range secretRules {
-		for _, loc := range rule.re.FindAllIndex(str, -1) {
+	for _, rule := range rules {
+		for _, loc := range rule.Pattern.FindAllIndex(str, -1) {
 			match := str[loc[0]:loc[1]]
-			if rule.minEntropy > 0 && Entropy(match) < rule.minEntropy {
+			if rule.MinEntropy > 0 && Entropy(match) < rule.MinEntropy {
 				continue
 			}
+			if allow != nil {
+				if _, ok := allow[string(match)]; ok {
+					continue
+				}
+			}
 			findings = append(findings, SecretFinding{
-				Rule:     rule.name,
-				Severity: rule.severity,
+				Rule:     rule.Name,
+				Severity: rule.Severity,
 				Match:    string(match),
 				Start:    loc[0],
 				End:      loc[1],

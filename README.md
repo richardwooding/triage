@@ -34,7 +34,7 @@ func main() {
 	res := triage.Classify([]byte("AKIAIOSFODNN7EXAMPLE"), 4.5)
 
 	fmt.Printf("entropy: %.2f\n", res.Entropy)        // entropy: 3.68
-	fmt.Printf("categories: %v\n", res.Categories)    // categories: []
+	fmt.Printf("category: %q\n", res.Category)        // category: "Base64"
 	for _, s := range res.Secrets {
 		fmt.Printf("[%s] %s: %s\n", s.Severity, s.Rule, s.Match)
 		// [HIGH] AWS Access Key: AKIAIOSFODNN7EXAMPLE
@@ -68,6 +68,40 @@ clean := triage.Redact([]byte(`db: "AKIAIOSFODNN7EXAMPLE"`))
 `Redact` never modifies its input and returns a new slice. `RedactWith` lets you
 supply a custom mask. Overlapping matches are merged so each region is masked
 exactly once, and the fixed mask avoids leaking the original secret's length.
+
+## Custom rules and allowlists
+
+`Classify` and `Redact` use the built-in rules. For custom detectors, an
+allowlist of known-benign values, or a fixed entropy threshold, build a
+`Scanner`:
+
+```go
+s := triage.NewScanner(
+	triage.WithExtraRules(triage.Rule{
+		Name:     "Acme Key",
+		Severity: triage.SeverityHigh,
+		Pattern:  regexp.MustCompile(`\bacme_[a-z0-9]{8}\b`),
+	}),
+	triage.WithAllowlist("AKIAIOSFODNN7EXAMPLE"), // suppress the docs key
+	triage.WithMinEntropy(4.5),
+)
+
+res := s.Classify([]byte("acme_abcd1234"))
+clean := s.Redact([]byte("acme_abcd1234"))
+```
+
+Options compose in order:
+
+| Option | Effect |
+| --- | --- |
+| `WithMinEntropy(f)` | High-entropy threshold for `Scanner.Classify` |
+| `WithRules(...)` | Replace the rule set entirely (use `DefaultRules()` as a base) |
+| `WithExtraRules(...)` | Append custom rules to the built-ins |
+| `WithoutRules(names...)` | Disable specific built-ins by name |
+| `WithAllowlist(values...)` | Suppress findings whose match equals a listed value |
+| `WithRedactMask(mask)` | Replacement used by `Scanner.Redact` |
+
+A `Scanner` is read-only and safe for concurrent use after construction.
 
 ## What it detects
 
