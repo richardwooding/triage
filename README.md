@@ -5,6 +5,8 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/richardwooding/triage)](https://goreportcard.com/report/github.com/richardwooding/triage)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
+**Website:** [richardwooding.github.io/triage](https://richardwooding.github.io/triage/)
+
 Lightweight, **dependency-free** security analysis of byte strings for Go: Shannon entropy
 scoring, content classification, and secret/credential detection. Point it at any string and
 it tells you whether it looks like a URL, an IP, a file path, an opaque high-entropy blob, or
